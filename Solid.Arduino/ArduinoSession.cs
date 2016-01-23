@@ -1200,9 +1200,27 @@ namespace Solid.Arduino
                     DeliverMessage(CreateFirmwareResponse());
                     return;
 
+                case SonarData:
+                    DeliverMessage(CreateSonarResponse());
+                    return;
+
                 default: // Unknown or unsupported message
-                    throw new NotImplementedException();
+                    //throw new NotImplementedException();
+                    Console.WriteLine("Message not recognized: {0}", _messageBuffer[1]);
+                    return;
             }
+        }
+
+        private FirmataMessage CreateSonarResponse()
+        {
+            var sonarReading = new SonarReading
+            {
+                EchoPin = (byte)_messageBuffer[2],
+                Distance = _messageBuffer[3] | (_messageBuffer[4] << 7)
+            };
+
+            return new FirmataMessage(sonarReading, MessageType.SonarData);
+
         }
 
         private void DeliverMessage(FirmataMessage message)
