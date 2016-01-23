@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using Solid.Arduino.Firmata;
 using Solid.Arduino.Firmata.Servo;
 using Solid.Arduino.I2C;
+using Solid.Arduino.Sonar;
 
 namespace Solid.Arduino
 {
@@ -56,7 +57,7 @@ namespace Solid.Arduino
     /// Console.ReadLine();
     /// </code>
     /// </example>
-    public class ArduinoSession : IFirmataProtocol, IServoProtocol, II2CProtocol, IStringProtocol, IDisposable
+    public class ArduinoSession : IFirmataProtocol, IServoProtocol, II2CProtocol, IStringProtocol, ISonarProtocol, IDisposable
     {
         #region Type declarations
 
@@ -70,7 +71,8 @@ namespace Solid.Arduino
             ProtocolVersion = 0xF9
         }
 
-        private enum StringReadMode {
+        private enum StringReadMode
+        {
             ReadLine,
             ReadToTerminator,
             ReadBlock
@@ -118,6 +120,9 @@ namespace Solid.Arduino
         private const byte VersionReportHeader = 0xF9;
         private const byte SysExStart = 0xF0;
         private const byte SysExEnd = 0xF7;
+
+        private const byte SonarConfig = 0x62;  // configure a sonar distance sensor for operation
+        private const byte SonarData = 0x63;    // Data returned from sonar distance sensor
 
         private const int Buffersize = 2048;
         private const int MaxQueuelength = 100;
@@ -334,7 +339,7 @@ namespace Solid.Arduino
         /// <inheritdoc cref="IFirmataProtocol.ResetBoard"/>
         public void ResetBoard()
         {
-            _connection.Write(new [] { (byte)0xFF }, 0, 1);
+            _connection.Write(new[] { (byte)0xFF }, 0, 1);
         }
 
         /// <inheritdoc cref="IFirmataProtocol.SetDigitalPin(int,long)"/>
@@ -517,7 +522,7 @@ namespace Solid.Arduino
         public BoardCapability GetBoardCapability()
         {
             RequestBoardCapability();
-            return (BoardCapability)((FirmataMessage) GetMessageFromQueue(new FirmataMessage(MessageType.CapabilityResponse))).Value;
+            return (BoardCapability)((FirmataMessage)GetMessageFromQueue(new FirmataMessage(MessageType.CapabilityResponse))).Value;
         }
 
         /// <inheritdoc cref="IFirmataProtocol.GetBoardCapabilityAsync"/>
@@ -635,7 +640,7 @@ namespace Solid.Arduino
             if (microseconds < 0 || microseconds > 0x3FFF)
                 throw new ArgumentOutOfRangeException("microseconds", Messages.ArgumentEx_I2cInterval);
 
-            var command = new []
+            var command = new[]
             {
                 SysExStart,
                 (byte)0x78,
@@ -754,6 +759,39 @@ namespace Solid.Arduino
 
         #endregion
 
+        #region ISonarProtocol
+
+        /// <inheritdoc cref="ISonarProtocol.ConfigureSonar"/>
+        public void ConfigureSonar(byte triggerPin, byte echoPin, byte pingInterval, int maxDistance)
+        {
+            if (triggerPin < 0 || triggerPin > 127)
+                throw new ArgumentOutOfRangeException("triggerPin", Messages.ArgumentEx_PinRange0_127);
+
+            if (echoPin < 0 || echoPin > 127)
+                throw new ArgumentOutOfRangeException("echoPin", Messages.ArgumentEx_PinRange0_127);
+
+            if (pingInterval < 33 || pingInterval > 127)
+                throw new ArgumentOutOfRangeException("pingInterval", "pingInterval must be between 33 and 127");
+
+            if (maxDistance < 0 || maxDistance > 0x3FFF)
+                throw new ArgumentOutOfRangeException("maxDistance", Messages.ArgumentEx_ValueRange0_16383);
+
+            var command = new[]
+            {
+                SysExStart,
+                SonarConfig,
+                triggerPin,
+                echoPin,
+                pingInterval,
+                (byte)(maxDistance & 0x7F),
+                (byte)((maxDistance >> 7) & 0x7F),
+                SysExEnd
+            };
+            _connection.Write(command, 0, 8);
+        }
+
+        #endregion
+
         #region IDisposable
 
         public void Dispose()
@@ -767,9 +805,6 @@ namespace Solid.Arduino
 
         #endregion
 
-        #endregion
-
-        #region Private Methods
 
         private void WriteMessageByte(int dataByte)
         {
@@ -826,8 +861,8 @@ namespace Solid.Arduino
                     if (_receivedMessageList.Count > 0)
                     {
                         var message = (from firmataMessage in _receivedMessageList
-                            where firmataMessage.Type == awaitedMessage.Type
-                            select firmataMessage).FirstOrDefault();
+                                       where firmataMessage.Type == awaitedMessage.Type
+                                       select firmataMessage).FirstOrDefault();
                         if (message != null)
                         {
                             //if (_receivedMessageQueue.Count > 0
@@ -1208,7 +1243,7 @@ namespace Solid.Arduino
             {
                 data[x] = (byte)(_messageBuffer[x * 2 + 6] | _messageBuffer[x * 2 + 7] << 7);
             }
-            
+
             reply.Data = data;
 
             if (I2CReplyReceived != null)
@@ -1356,7 +1391,7 @@ namespace Solid.Arduino
 
             var builder = new StringBuilder(_messageBufferIndex);
 
-            for (int x = 4; x < _messageBufferIndex; x += 2 )
+            for (int x = 4; x < _messageBufferIndex; x += 2)
             {
                 builder.Append((char)(_messageBuffer[x] | (_messageBuffer[x + 1] << 7)));
             }
@@ -1366,6 +1401,5 @@ namespace Solid.Arduino
         }
 
         #endregion
-
     }
 }

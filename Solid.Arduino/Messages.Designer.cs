@@ -158,7 +158,7 @@ namespace Solid.Arduino {
                 return ResourceManager.GetString("ArgumentEx_PinRange0_127", resourceCulture);
             }
         }
-        
+
         /// <summary>
         ///   Looks up a localized string similar to Pin must be between 0 and 7..
         /// </summary>
