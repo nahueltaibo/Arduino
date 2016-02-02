@@ -121,8 +121,8 @@ namespace Solid.Arduino
         private const byte SysExStart = 0xF0;
         private const byte SysExEnd = 0xF7;
 
-        private const byte SonarConfig = 0x62;  // configure a sonar distance sensor for operation
-        private const byte SonarData = 0x63;    // Data returned from sonar distance sensor
+        private const byte SonarConfig = 0x58;  // configure a sonar distance sensor for operation
+        private const byte SonarData = 0x59;    // Data returned from sonar distance sensor
 
         private const int Buffersize = 2048;
         private const int MaxQueuelength = 100;

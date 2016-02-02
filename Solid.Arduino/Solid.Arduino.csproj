@@ -85,7 +85,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Sonar\ISonarProtocol.cs" />
-    <Compile Include="Sonar\SonarMeasure.cs" />
+    <Compile Include="Sonar\SonarReading.cs" />
     <Compile Include="StringEventArgs.cs" />
     <Compile Include="StringExtensions.cs" />
   </ItemGroup>
