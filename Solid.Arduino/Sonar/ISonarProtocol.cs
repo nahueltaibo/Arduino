@@ -16,8 +16,13 @@ namespace Solid.Arduino.Sonar
         /// </summary>
         /// <param name="triggerPin">The pin number connected to the sonars trigger pin</param>
         /// <param name="echoPin">Minimum pulse length</param>
-        /// <param name="pingInterval">Maximum pulse length</param>
         /// <param name="maxDistance">Maximum pulse length</param>
-        void ConfigureSonar(byte triggerPin, byte echoPin, byte pingInterval, int maxDistance);
+        void ConfigureSonar(byte triggerPin, byte echoPin, int maxDistance);
+
+        /// <summary>
+        /// Configures the interval between sensor pings (29ms is the min to avoid cross-sensor echo).
+        /// </summary>
+        /// <param name="interval">Milliseconds between sensor pings</param>
+        void ConfigurePingInterval(byte interval);
     }
 }

@@ -13,6 +13,7 @@ using Solid.Arduino.Firmata.Servo;
 using Solid.Arduino.I2C;
 using Solid.Arduino.Sonar;
 
+
 namespace Solid.Arduino
 {
     /// <summary>
@@ -121,8 +122,9 @@ namespace Solid.Arduino
         private const byte SysExStart = 0xF0;
         private const byte SysExEnd = 0xF7;
 
-        private const byte SonarConfig = 0x58;  // configure a sonar distance sensor for operation
-        private const byte SonarData = 0x59;    // Data returned from sonar distance sensor
+        private const byte SonarPingInterval = 0x57;    // Configures the milliseconds between sensor pings
+        private const byte SonarConfig = 0x58;          // Configure a sonar distance sensor for operation
+        private const byte SonarData = 0x59;            // Data returned from sonar distance sensor
 
         private const int Buffersize = 2048;
         private const int MaxQueuelength = 100;
@@ -762,16 +764,13 @@ namespace Solid.Arduino
         #region ISonarProtocol
 
         /// <inheritdoc cref="ISonarProtocol.ConfigureSonar"/>
-        public void ConfigureSonar(byte triggerPin, byte echoPin, byte pingInterval, int maxDistance)
+        public void ConfigureSonar(byte triggerPin, byte echoPin, int maxDistance)
         {
             if (triggerPin < 0 || triggerPin > 127)
                 throw new ArgumentOutOfRangeException("triggerPin", Messages.ArgumentEx_PinRange0_127);
 
             if (echoPin < 0 || echoPin > 127)
                 throw new ArgumentOutOfRangeException("echoPin", Messages.ArgumentEx_PinRange0_127);
-
-            if (pingInterval < 33 || pingInterval > 127)
-                throw new ArgumentOutOfRangeException("pingInterval", "pingInterval must be between 33 and 127");
 
             if (maxDistance < 0 || maxDistance > 0x3FFF)
                 throw new ArgumentOutOfRangeException("maxDistance", Messages.ArgumentEx_ValueRange0_16383);
@@ -782,12 +781,28 @@ namespace Solid.Arduino
                 SonarConfig,
                 triggerPin,
                 echoPin,
-                pingInterval,
                 (byte)(maxDistance & 0x7F),
                 (byte)((maxDistance >> 7) & 0x7F),
                 SysExEnd
             };
-            _connection.Write(command, 0, 8);
+            _connection.Write(command, 0, 7);
+        }
+
+        /// <inheritdoc cref="ISonarProtocol.ConfigurePingInterval(byte)"/>
+        public void ConfigurePingInterval(byte interval)
+        {
+            if (interval < 29 || interval > 255)
+                throw new ArgumentOutOfRangeException("interval", "Sensor Ping interval must be between 29 and 255");
+
+            var command = new[]
+            {
+                SysExStart,
+                SonarPingInterval,
+                interval,
+                SysExEnd
+            };
+            _connection.Write(command, 0, 4);
+
         }
 
         #endregion
@@ -1215,9 +1230,16 @@ namespace Solid.Arduino
         {
             var sonarReading = new SonarReading
             {
-                EchoPin = (byte)_messageBuffer[2],
-                Distance = _messageBuffer[3] | (_messageBuffer[4] << 7)
+                //EchoPin = (byte)_messageBuffer[2],
+                //Distances = _messageBuffer[3] | (_messageBuffer[4] << 7)
+                Distances = new List<int>()
             };
+
+            for(int i = 2; i< _messageBufferIndex; i += 4)
+            {
+                int distance = _messageBuffer[i] | (_messageBuffer[i + 1] << 7);
+                sonarReading.Distances.Add(distance);
+            }
 
             return new FirmataMessage(sonarReading, MessageType.SonarData);
 
@@ -1417,6 +1439,7 @@ namespace Solid.Arduino
             firmware.Name = builder.ToString();
             return new FirmataMessage(firmware, MessageType.FirmwareResponse);
         }
+
 
         #endregion
     }

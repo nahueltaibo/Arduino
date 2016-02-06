@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace Solid.Arduino.Sonar
 {
@@ -8,13 +9,8 @@ namespace Solid.Arduino.Sonar
     public struct SonarReading
     {
         /// <summary>
-        /// EchoPin of the Sonar that made the reading
+        /// Distances in cm measured by every RangeFinder configured in the Sonar
         /// </summary>
-        public byte EchoPin { get; set; }
-
-        /// <summary>
-        /// Distance in cm measured by the Sonar
-        /// </summary>
-        public int Distance { get; set; }
+        public IList<int> Distances { get; set; }
     }
 }
