@@ -58,7 +58,7 @@ namespace Solid.Arduino
     /// Console.ReadLine();
     /// </code>
     /// </example>
-    public class ArduinoSession : IFirmataProtocol, IServoProtocol, II2CProtocol, IStringProtocol, ISonarProtocol, IDisposable
+    public class ArduinoSession : IAndarBackboneProtocol, IFirmataProtocol, IServoProtocol, II2CProtocol, IStringProtocol, ISonarProtocol, IDisposable
     {
         #region Type declarations
 
@@ -122,6 +122,7 @@ namespace Solid.Arduino
         private const byte SysExStart = 0xF0;
         private const byte SysExEnd = 0xF7;
 
+        private byte CmdUpdateMotors = 0x56;            // Updates the acceleration and speed of the motors
         private const byte SonarPingInterval = 0x57;    // Configures the milliseconds between sensor pings
         private const byte SonarConfig = 0x58;          // Configure a sonar distance sensor for operation
         private const byte SonarData = 0x59;            // Data returned from sonar distance sensor
@@ -142,7 +143,7 @@ namespace Solid.Arduino
         private int _messageBufferIndex, _stringBufferIndex;
         private readonly int[] _messageBuffer = new int[Buffersize];
         private readonly char[] _stringBuffer = new char[Buffersize];
-
+        
         #endregion
 
         #region Constructors
@@ -820,6 +821,34 @@ namespace Solid.Arduino
 
         #endregion
 
+        #region IAndarBackboneProtocol
+
+        public void UpdateMotors(byte acceleration, int leftSpeed, int rightSpeed)
+        {
+            if (acceleration < 0 || acceleration > 100)
+                throw new ArgumentOutOfRangeException("acceleration", "Value Must be between 0 and 100");
+
+            if (leftSpeed < -100 || leftSpeed > 100)
+                throw new ArgumentOutOfRangeException("leftSpeed", "Value must be between -100 and 100");
+
+            if (rightSpeed < -100 || rightSpeed > 100)
+                throw new ArgumentOutOfRangeException("rightSpeed", "Value must be between -100 and 100");
+
+            var command = new[]
+            {
+                SysExStart,
+                CmdUpdateMotors,
+                acceleration,
+                (byte)(leftSpeed & 0x7F),
+                (byte)((leftSpeed >> 7) & 0x7F),
+                (byte)(rightSpeed & 0x7F),
+                (byte)((rightSpeed >> 7) & 0x7F),
+                SysExEnd
+            };
+            _connection.Write(command, 0, 8);
+        }
+
+        #endregion
 
         private void WriteMessageByte(int dataByte)
         {

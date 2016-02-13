@@ -65,6 +65,7 @@
     <Compile Include="Firmata\IFirmataProtocol.cs" />
     <Compile Include="I2C\I2cReplyTracker.cs" />
     <Compile Include="I2C\II2cProtocol.cs" />
+    <Compile Include="Andar\IAndarProtocol.cs" />
     <Compile Include="ISerialConnection.cs" />
     <Compile Include="IStringProtocol.cs" />
     <Compile Include="Firmata\PinCapability.cs" />
